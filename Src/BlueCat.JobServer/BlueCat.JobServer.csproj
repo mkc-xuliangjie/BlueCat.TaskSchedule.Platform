@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.7.7" />
+    <PackageReference Include="Hangfire.Heartbeat" Version="0.5.0" />
+    <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Razor.Design" Version="2.2.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Hangfire.MySqlStorage.Core\Hangfire.MySqlStorage.Core.csproj" />
+    <ProjectReference Include="..\BlueCat.Core\BlueCat.Core.csproj" />
+    <ProjectReference Include="..\Hangfire.Redis.StackExchange\Hangfire.Redis.StackExchange.csproj" />
+  </ItemGroup>
+
+</Project>
