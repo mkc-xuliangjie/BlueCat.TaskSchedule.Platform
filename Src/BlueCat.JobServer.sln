@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.28307.902
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueCat.JobServer", "BlueCat.JobServer\BlueCat.JobServer.csproj", "{5436AD2B-6DA9-4E8D-AC57-3DFD415F16E9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.MySqlStorage.Core", "..\Hangfire.MySqlStorage.Core\Hangfire.MySqlStorage.Core.csproj", "{BC822E02-068A-4F60-B7C4-3101FCA525B6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.MySqlStorage.Core", "Hangfire.MySqlStorage.Core\Hangfire.MySqlStorage.Core.csproj", "{BC822E02-068A-4F60-B7C4-3101FCA525B6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Redis.StackExchange", "Hangfire.Redis.StackExchange\Hangfire.Redis.StackExchange.csproj", "{30927225-E788-4443-A925-FFBF5BEE6B1E}"
 EndProject
