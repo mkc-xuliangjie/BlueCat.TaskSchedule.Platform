@@ -3,15 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.902
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueCat.JobServer", "BlueCat.JobServer\BlueCat.JobServer.csproj", "{5436AD2B-6DA9-4E8D-AC57-3DFD415F16E9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlueCat.JobServer", "BlueCat.JobServer\BlueCat.JobServer.csproj", "{5436AD2B-6DA9-4E8D-AC57-3DFD415F16E9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.MySqlStorage.Core", "Hangfire.MySqlStorage.Core\Hangfire.MySqlStorage.Core.csproj", "{BC822E02-068A-4F60-B7C4-3101FCA525B6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.MySqlStorage.Core", "Hangfire.MySqlStorage.Core\Hangfire.MySqlStorage.Core.csproj", "{BC822E02-068A-4F60-B7C4-3101FCA525B6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Redis.StackExchange", "Hangfire.Redis.StackExchange\Hangfire.Redis.StackExchange.csproj", "{30927225-E788-4443-A925-FFBF5BEE6B1E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.Redis.StackExchange", "Hangfire.Redis.StackExchange\Hangfire.Redis.StackExchange.csproj", "{30927225-E788-4443-A925-FFBF5BEE6B1E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueCat.Core", "BlueCat.Core\BlueCat.Core.csproj", "{02EE9288-94AF-4E42-BD4F-CB71EA2985A5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlueCat.Core", "BlueCat.Core\BlueCat.Core.csproj", "{02EE9288-94AF-4E42-BD4F-CB71EA2985A5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.HttpJob", "Hangfire.HttpJob\Hangfire.HttpJob.csproj", "{EFD31771-A447-406D-8A21-8AAFE51074AA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.HttpJob", "Hangfire.HttpJob\Hangfire.HttpJob.csproj", "{EFD31771-A447-406D-8A21-8AAFE51074AA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Dashboard.BasicAuthorization", "Hangfire.Dashboard.BasicAuthorization\Hangfire.Dashboard.BasicAuthorization.csproj", "{87FC4F8B-5A5F-4455-ADBB-B7FC16B83AEF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{EFD31771-A447-406D-8A21-8AAFE51074AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EFD31771-A447-406D-8A21-8AAFE51074AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EFD31771-A447-406D-8A21-8AAFE51074AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87FC4F8B-5A5F-4455-ADBB-B7FC16B83AEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87FC4F8B-5A5F-4455-ADBB-B7FC16B83AEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87FC4F8B-5A5F-4455-ADBB-B7FC16B83AEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87FC4F8B-5A5F-4455-ADBB-B7FC16B83AEF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

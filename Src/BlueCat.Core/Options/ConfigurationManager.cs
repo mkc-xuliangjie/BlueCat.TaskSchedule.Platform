@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace BlueCat.Core.Options
@@ -244,6 +246,24 @@ namespace BlueCat.Core.Options
 
             this[key] = value.ToString();
         }
+
+
+        public List<T> GetList<T>(string key, List<T> def = null)
+        {
+            if (key == null)
+            {
+                return def;
+            }
+
+            var value = this[key];
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return def;
+            }
+
+            return FromJson<List<T>>(value);
+        }
+
         #endregion
 
         #region 预定义对象
@@ -505,6 +525,18 @@ namespace BlueCat.Core.Options
                 return;
             }
             ConnectionStrings[key] = connectionString;
+        }
+
+        public static List<string> GetAppSettingList(string key, List<string> def = null)
+        {
+            return AppSettings.GetList<string>(key, def);
+        }
+
+        public static T FromJson<T>(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return default(T);
+            return JsonConvert.DeserializeObject<T>(json);
         }
 
         #endregion

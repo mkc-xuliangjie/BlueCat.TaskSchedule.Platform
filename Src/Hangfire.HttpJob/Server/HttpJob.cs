@@ -45,7 +45,7 @@ namespace Hangfire.HttpJob.Server
                 List<Emails> SendMailList = new List<Emails>();
                 if (UseApollo)
                 {
-                    SendMailList = JsonConvert.DeserializeObject<List<Emails>>(ConfigSettings.Instance.SendMailList);
+                    SendMailList = JsonConvert.DeserializeObject<List<Emails>>(ConfigSettings.Instance.SendMailJson);
                     SendMailList.ForEach(k =>
                     {
                         mimeMessage.To.Add(new MailboxAddress(k.Email));

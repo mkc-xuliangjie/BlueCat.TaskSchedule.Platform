@@ -51,17 +51,17 @@ namespace BlueCat.Core
         /// <summary>
         /// sqlserver数据库连接
         /// </summary>
-        public string HangfireSqlserverConnectionString => ConfigurationManager.GetAppSetting("sqlserver");
+        public string HangfireSqlserverConnectionString => ConfigurationManager.GetAppSetting("Hangfire.SqlServer");
 
         /// <summary>
         /// 使用mysql连接
         /// </summary>
-        public string HangfireMysqlConnectionString => ConfigurationManager.GetAppSetting("Mysql");
+        public string HangfireMysqlConnectionString => ConfigurationManager.GetAppSetting("Hangfire.Mysql");
 
         /// <summary>
         ///  使用redis连接
         /// </summary>
-        public string HangfireRedisConnectionString => ConfigurationManager.GetAppSetting("redis");
+        public string HangfireRedisConnectionString => ConfigurationManager.GetAppSetting("Hangfire.Redis");
 
         /// <summary>
         /// 是否使用apollo配置中心
@@ -70,7 +70,7 @@ namespace BlueCat.Core
         /// <summary>
         /// 健康检查api地址
         /// </summary>
-        public string HostServers => ConfigurationManager.GetAppSetting("CheckUrls");
+        public string HostServers => ConfigurationManager.GetAppSetting("HealthChecks-UI:CheckUrls");
         /// <summary>
         /// 已完成作业过期时间(过期后会被自动删除)
         /// </summary>
@@ -98,10 +98,23 @@ namespace BlueCat.Core
         /// </summary>
         public string SMTPSubject => ConfigurationManager.GetAppSetting("SMTPConfig:SMTPSubject");
 
+
         /// <summary>
         /// 接收者邮箱
         /// </summary>
-        public string SendMailList => ConfigurationManager.GetAppSetting("SMTPConfig:SendToMailList");
+        private List<Emails> SendList { get; } = new List<Emails>();
+
+
+        /// <summary>
+        /// 接收者邮箱
+        /// </summary>
+        public string SendMailJson => ConfigurationManager.GetAppSetting("SMTPConfig:SendToMailList");
+
+
+        /// <summary>
+        /// 接收者邮箱
+        /// </summary>
+        public List<string> SendMailList => ConfigurationManager.GetAppSettingList("SMTPConfig:SendToMailList");
         /// <summary>
         /// 使用后台进程
         /// </summary>
@@ -110,6 +123,8 @@ namespace BlueCat.Core
         /// 是否使用邮件通知，此配置来自config文件，非Apollo
         /// </summary>
         public bool UseEmail => ConfigurationManager.GetAppSettingBool("Hangfire.UseEmail");
+
+        public string BackWorker=> ConfigurationManager.GetAppSetting("BackWorker");
         #endregion
     }
 

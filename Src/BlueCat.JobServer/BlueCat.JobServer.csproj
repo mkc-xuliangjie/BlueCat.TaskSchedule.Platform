@@ -6,15 +6,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.Hangfire" Version="2.2.2" />
+    <PackageReference Include="AspNetCore.HealthChecks.Publisher.Prometheus" Version="2.2.0" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="2.2.4" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI" Version="2.2.34" />
+    <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="2.2.3" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.7.7" />
+    <PackageReference Include="Hangfire.Console" Version="1.4.2" />
     <PackageReference Include="Hangfire.Heartbeat" Version="0.5.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.Razor.Design" Version="2.2.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.2.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Hangfire.MySqlStorage.Core\Hangfire.MySqlStorage.Core.csproj" />
     <ProjectReference Include="..\BlueCat.Core\BlueCat.Core.csproj" />
+    <ProjectReference Include="..\Hangfire.Dashboard.BasicAuthorization\Hangfire.Dashboard.BasicAuthorization.csproj" />
+    <ProjectReference Include="..\Hangfire.HttpJob\Hangfire.HttpJob.csproj" />
+    <ProjectReference Include="..\Hangfire.MySqlStorage.Core\Hangfire.MySqlStorage.Core.csproj" />
     <ProjectReference Include="..\Hangfire.Redis.StackExchange\Hangfire.Redis.StackExchange.csproj" />
   </ItemGroup>
 
