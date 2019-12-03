@@ -51,17 +51,17 @@ namespace BlueCat.Core
         /// <summary>
         /// sqlserver数据库连接
         /// </summary>
-        public string HangfireSqlserverConnectionString => ConfigurationManager.GetAppSetting("Hangfire.SqlServer");
+        public string HangfireSqlserverConnectionString => ConfigurationManager.GetConnectionString("Hangfire.SqlServer");
 
         /// <summary>
         /// 使用mysql连接
         /// </summary>
-        public string HangfireMysqlConnectionString => ConfigurationManager.GetAppSetting("Hangfire.Mysql");
+        public string HangfireMysqlConnectionString => ConfigurationManager.GetConnectionString("Hangfire.Mysql");
 
         /// <summary>
         ///  使用redis连接
         /// </summary>
-        public string HangfireRedisConnectionString => ConfigurationManager.GetAppSetting("Hangfire.Redis");
+        public string HangfireRedisConnectionString => ConfigurationManager.GetConnectionString("Hangfire.Redis");
 
         /// <summary>
         /// 是否使用apollo配置中心

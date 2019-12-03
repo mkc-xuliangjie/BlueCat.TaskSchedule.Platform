@@ -94,7 +94,7 @@ namespace BlueCat.JobServer
                     config.UseRedisStorage(Redis, new Hangfire.Redis.RedisStorageOptions()
                     {
                         FetchTimeout = TimeSpan.FromMinutes(5),
-                        Prefix = "{hangfire}:",
+                        Prefix = "{Custom}:",
                         //活动服务器超时时间
                         InvisibilityTimeout = TimeSpan.FromHours(1),
                         //任务过期检查频率
@@ -109,7 +109,7 @@ namespace BlueCat.JobServer
                 if (ConfigurationManager.GetAppSettingBool("Hangfire.UseMySql"))
                 {
                     //添加 Mysql
-                    config.UseStorage(new MySqlStorage(Configuration.GetConnectionString("Hangfire_MySql"), new MySqlStorageOptions() { TablePrefix = "Custom" }));//启用http任务;
+                    config.UseStorage(new MySqlStorage(Configuration.GetConnectionString("Hangfire.MySql"), new MySqlStorageOptions() { TablePrefix = "Custom" }));//启用http任务;
                 }
 
                 //使用SqlServer
