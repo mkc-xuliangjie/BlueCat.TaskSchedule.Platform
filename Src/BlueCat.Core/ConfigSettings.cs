@@ -70,7 +70,7 @@ namespace BlueCat.Core
         /// <summary>
         /// 健康检查api地址
         /// </summary>
-        public string HostServers => ConfigurationManager.GetAppSetting("HealthChecks-UI:CheckUrls");
+        public List<HealthCheckInfo> HostServers => ConfigurationManager.GetObjSetting<List<HealthCheckInfo>>("HealthChecks-UI:CheckUrls");
         /// <summary>
         /// 已完成作业过期时间(过期后会被自动删除)
         /// </summary>
@@ -110,11 +110,10 @@ namespace BlueCat.Core
         /// </summary>
         public string SendMailJson => ConfigurationManager.GetAppSetting("SMTPConfig:SendToMailList");
 
-
         /// <summary>
         /// 接收者邮箱
         /// </summary>
-        public List<string> SendMailList => ConfigurationManager.GetAppSettingList("SMTPConfig:SendToMailList");
+        public List<string> SendMailList => ConfigurationManager.GetObjSetting<List<string>>("SMTPConfig:SendToMailList");
         /// <summary>
         /// 使用后台进程
         /// </summary>
@@ -124,8 +123,10 @@ namespace BlueCat.Core
         /// </summary>
         public bool UseEmail => ConfigurationManager.GetAppSettingBool("Hangfire.UseEmail");
 
-        public string BackWorker=> ConfigurationManager.GetAppSetting("BackWorker");
+        public string BackWorker => ConfigurationManager.GetAppSetting("BackWorker");
         #endregion
+
+        public HealthCheckInfo healthCheckInfo = new HealthCheckInfo();
     }
 
     /// <summary>

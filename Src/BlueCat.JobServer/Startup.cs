@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
-using BlueCat.Core;
+﻿using BlueCat.Core;
 using BlueCat.Core.Options;
 using Hangfire;
 using Hangfire.Console;
@@ -26,10 +20,13 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using StackExchange.Redis;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Net.Http;
 
 
 
@@ -65,8 +62,10 @@ namespace BlueCat.JobServer
             CultureInfo.CurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentCulture = culture;
 
+           string useRedis= ConfigurationManager.GetAppSetting("Hangfire.UseRedis"); 
+           
             //健康检查地址添加
-            var hostlist = ConfigurationManager.FromJson<List<HealthCheckInfo>>(ConfigSettings.Instance.HostServers);
+            var hostlist = ConfigSettings.Instance.HostServers;
             //添加健康检查地址
             hostlist.ForEach(s =>
             {

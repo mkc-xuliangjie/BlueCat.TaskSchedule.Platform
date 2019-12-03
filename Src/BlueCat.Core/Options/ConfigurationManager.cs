@@ -540,5 +540,46 @@ namespace BlueCat.Core.Options
         }
 
         #endregion
+
+        #region 对象内容获取
+
+        /// <summary>
+        ///   获取Key对应的文本值
+        /// </summary>
+        /// <param name="key"> 键 </param>
+        /// <param name="def"> 缺省值（不存在或不合理时使用） </param>
+        /// <returns> 文本值 </returns>
+        public static T GetObjSetting<T>(string key)
+        {
+            if (key == null)
+            {
+                return default(T);
+            }
+
+            return AppSettings.Configuration.GetSection(key).Get<T>();
+            //return AppSettings[key] ?? def;
+        }
+
+        #endregion
     }
+
+    //public class ConfigurationManager<T> : ConfigurationManager
+    //{
+    //    /// <summary>
+    //    ///   获取Key对应的文本值
+    //    /// </summary>
+    //    /// <param name="key"> 键 </param>
+    //    /// <param name="def"> 缺省值（不存在或不合理时使用） </param>
+    //    /// <returns> 文本值 </returns>
+    //    public static T GetObjSetting<T>(string key)
+    //    {
+    //        if (key == null)
+    //        {
+    //            return default(T);
+    //        }
+
+    //        return AppSettings.Configuration.GetSection(key).Get<T>();
+    //        //return AppSettings[key] ?? def;
+    //    }
+    //}
 }
