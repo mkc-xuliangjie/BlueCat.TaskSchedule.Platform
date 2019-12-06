@@ -10,7 +10,7 @@ namespace Hangfire.MySqlStorage.Core
         public MySqlStorageOptions()
         {
             TransactionIsolationLevel = IsolationLevel.ReadCommitted;//实物隔离级别，默认为读取已提交
-            QueuePollInterval = TimeSpan.FromSeconds(1);//队列检测频率，秒级任务需要配置短点，一般任务可以配置默认时间
+            QueuePollInterval = TimeSpan.FromSeconds(15);//队列检测频率，秒级任务需要配置短点，一般任务可以配置默认时间
             JobExpirationCheckInterval = TimeSpan.FromHours(1);//作业到期检查间隔（管理过期记录）。默认值为1小时
             CountersAggregateInterval = TimeSpan.FromMinutes(5);//聚合计数器的间隔。默认为5分钟
             PrepareSchemaIfNecessary = true;//设置true，则会自动创建表

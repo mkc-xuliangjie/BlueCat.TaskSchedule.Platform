@@ -20,8 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BlueCat.ApiExtensions\BlueCat.ApiExtensions.csproj" />
+    <ProjectReference Include="..\BlueCat.Contract\BlueCat.Contract.csproj" />
     <ProjectReference Include="..\BlueCat.Core\BlueCat.Core.csproj" />
     <ProjectReference Include="..\Hangfire.Dashboard.BasicAuthorization\Hangfire.Dashboard.BasicAuthorization.csproj" />
+    <ProjectReference Include="..\Hangfire.HttpJob.Agent\Hangfire.HttpJob.Agent.csproj" />
+    <ProjectReference Include="..\Hangfire.HttpJob.Client\Hangfire.HttpJob.Client.csproj" />
     <ProjectReference Include="..\Hangfire.HttpJob\Hangfire.HttpJob.csproj" />
     <ProjectReference Include="..\Hangfire.MySqlStorage.Core\Hangfire.MySqlStorage.Core.csproj" />
     <ProjectReference Include="..\Hangfire.Redis.StackExchange\Hangfire.Redis.StackExchange.csproj" />

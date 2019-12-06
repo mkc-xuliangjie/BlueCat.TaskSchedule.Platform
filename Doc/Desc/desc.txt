@@ -1,0 +1,16 @@
+Redis
+Localhost:0>TTL {Custom}:recurring-job:test11
+"-1"
+Localhost:0>TTL {Custom}:recurring-jobs
+"-1"
+
+
+KEY:不过期
+{Custom}:queues
+{Custom}:recurring-job:xxx
+{Custom}:recurring-job
+servers
+{Custom}:servers
+{Custom}:stats:succeeded
+{Custom}:succeeded
+{Custom}:tags

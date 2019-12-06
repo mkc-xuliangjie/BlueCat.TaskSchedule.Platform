@@ -47,7 +47,7 @@ namespace Hangfire.Redis
         }
 
         public IDatabase Redis { get; }
-        
+
         public override IDisposable AcquireDistributedLock([NotNull] string resource, TimeSpan timeout)
         {
             return RedisLock.Acquire(Redis, _storage.GetRedisKey(resource), timeout);
@@ -80,7 +80,8 @@ namespace Hangfire.Redis
                 }
 
                 transaction.Execute();
-            } else
+            }
+            else
             {
                 Redis.SetAddAsync(_storage.GetRedisKey("servers"), serverId);
 
@@ -112,7 +113,7 @@ namespace Hangfire.Redis
 
             var jobId = Guid.NewGuid().ToString();
 
-            var invocationData = InvocationData.Serialize(job);
+            var invocationData = InvocationData.SerializeJob(job);
 
             // Do not modify the original parameters.
             var storedParameters = new Dictionary<string, string>(parameters)
@@ -133,7 +134,8 @@ namespace Hangfire.Redis
 
                 // TODO: check return value
                 transaction.Execute();
-            } else
+            }
+            else
             {
                 Redis.HashSetAsync(_storage.GetRedisKey($"job:{jobId}"), storedParameters.ToHashEntries());
                 Redis.KeyExpireAsync(_storage.GetRedisKey($"job:{jobId}"), expireIn);
@@ -265,7 +267,7 @@ namespace Hangfire.Redis
             string parameterTypes = storedData.FirstOrDefault(x => x.Name == "ParameterTypes").Value;
             string arguments = storedData.FirstOrDefault(x => x.Name == "Arguments").Value;
             string createdAt = storedData.FirstOrDefault(x => x.Name == "CreatedAt").Value;
-            
+
             Job job = null;
             JobLoadException loadException = null;
 
@@ -382,7 +384,8 @@ namespace Hangfire.Redis
                     });
 
                 transaction.Execute();
-            } else
+            }
+            else
             {
                 Redis.SetRemoveAsync(_storage.GetRedisKey("servers"), serverId);
                 Redis.KeyDeleteAsync(
@@ -400,7 +403,7 @@ namespace Hangfire.Redis
             var heartbeats = new Dictionary<string, Tuple<DateTime, DateTime?>>();
 
             var utcNow = DateTime.UtcNow;
-            
+
             foreach (var serverName in serverNames)
             {
                 var srv = Redis.HashGet(_storage.GetRedisKey($"server:{serverName}"), new RedisValue[] { "StartedAt", "Heartbeat" });

@@ -1,260 +1,387 @@
 ﻿using Hangfire.Console;
+using Hangfire.HttpJob.Content.resx;
+using Hangfire.HttpJob.Support;
 using Hangfire.Logging;
 using Hangfire.Server;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using System.Net;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text;
-using MailKit;
-using MimeKit;
-using MailKit.Net.Smtp;
-using Hangfire.HttpJob.Support;
-using NLog;
-using System.Collections.Generic;
-using BlueCat.Core;
+using System.Threading;
 
 namespace Hangfire.HttpJob.Server
 {
     public class HttpJob
     {
-        /// <summary>
-        /// 是否使用apollo配置中心
-        /// </summary>
-        private static readonly bool UseApollo = ConfigSettings.Instance.UseApollo;
-        private static readonly Logger logger = new LogFactory().GetCurrentClassLogger();
+        #region Field
+        private static readonly ILog Logger = LogProvider.For<HttpJob>();
         public static HangfireHttpJobOptions HangfireHttpJobOptions;
 
-        private static MimeMessage mimeMessage;
+        #endregion
+
+        #region Public
 
         /// <summary>
-        /// 发送邮件
+        /// 发起HTTP调度
         /// </summary>
-        /// <param name="jobname">任务名称</param>
-        /// <param name="Url">地址</param>
-        /// <param name="exception">异常信息</param>
-        /// <returns></returns>
-        public static bool SendEmail(string jobname, string Url, string exception)
+        /// <param name="item">job详情</param>
+        /// <param name="jobName">job名称</param>
+        /// <param name="queuename">指定queue名称(Note: Hangfire queue names need to be lower case)</param>
+        /// <param name="isretry">是否http调用出错重试</param>
+        /// <param name="context">上下文</param>
+        [AutomaticRetrySet(Attempts = 3, DelaysInSeconds = new[] { 20, 30, 60 }, LogEvents = true, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
+        [DisplayName("[{1} | {2} | Retry:{3}]")]
+        [JobFilter(timeoutInSeconds: 3600)]
+
+        public static void Excute(HttpJobItem item, string jobName = null, string queuename = null, bool isretry = false, PerformContext context = null)
         {
+            var logList = new List<string>();
             try
             {
-                mimeMessage = new MimeMessage();
-                mimeMessage.From.Add(new MailboxAddress(UseApollo ? ConfigSettings.Instance.SendMailAddress : HangfireHttpJobOptions.SendMailAddress));
-                List<Emails> SendMailList = new List<Emails>();
-                if (UseApollo)
+                if (context == null) return;
+                context.Items.TryGetValue("Data", out var runTimeDataItem);
+                var runTimeData = runTimeDataItem as string;
+                if (!string.IsNullOrEmpty(runTimeData))
                 {
-                    SendMailList = JsonConvert.DeserializeObject<List<Emails>>(ConfigSettings.Instance.SendMailJson);
-                    SendMailList.ForEach(k =>
-                    {
-                        mimeMessage.To.Add(new MailboxAddress(k.Email));
-                    });
+                    item.Data = runTimeData;
+                }
+                if (item.Timeout < 1) item.Timeout = 5000;
+                RunWithTry(() => context.SetTextColor(ConsoleTextColor.Yellow));
+                RunWithTry(() => context.WriteLine($"{Strings.JobStart}:{DateTime.Now:yyyy-MM-dd HH:mm:ss}"));
+                logList.Add($"{Strings.JobStart}:{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                RunWithTry(() => context.WriteLine($"{Strings.JobName}:{item.JobName ?? string.Empty}|{Strings.QueuenName}:{(string.IsNullOrEmpty(item.QueueName) ? "DEFAULT" : item.QueueName)}"));
+                logList.Add($"{Strings.JobName}:{item.JobName ?? string.Empty}|{Strings.QueuenName}:{(string.IsNullOrEmpty(item.QueueName) ? "DEFAULT" : item.QueueName)}");
+                RunWithTry(() => context.WriteLine($"{Strings.JobParam}:【{JsonConvert.SerializeObject(item)}】"));
+                logList.Add($"{Strings.JobParam}:【{JsonConvert.SerializeObject(item, Formatting.Indented)}】");
+                HttpClient client;
+                if (!string.IsNullOrEmpty(HangfireHttpJobOptions.Proxy))
+                {
+                    // per proxy per HttpClient
+                    client = HangfireHttpClientFactory.Instance.GetProxiedHttpClient(HangfireHttpJobOptions.Proxy);
+                    RunWithTry(() => context.WriteLine($"Proxy:{HangfireHttpJobOptions.Proxy}"));
+                    logList.Add($"Proxy:{HangfireHttpJobOptions.Proxy}");
                 }
                 else
                 {
-                    HangfireHttpJobOptions.SendToMailList.ForEach(k =>
-                    {
-                        mimeMessage.To.Add(new MailboxAddress(k));
-                    });
+                    //per host per HttpClient
+                    client = HangfireHttpClientFactory.Instance.GetHttpClient(item.Url);
                 }
-                mimeMessage.Subject = UseApollo ? ConfigSettings.Instance.SMTPSubject : HangfireHttpJobOptions.SMTPSubject;
-                var builder = new BodyBuilder
+                var httpMesage = PrepareHttpRequestMessage(item, context);
+                var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(item.Timeout));
+                var httpResponse = client.SendAsync(httpMesage, cts.Token).ConfigureAwait(false).GetAwaiter().GetResult();
+                HttpContent content = httpResponse.Content;
+                string result = content.ReadAsStringAsync().GetAwaiter().GetResult();
+                RunWithTry(() => context.WriteLine($"{Strings.ResponseCode}:{httpResponse.StatusCode}"));
+                logList.Add($"{Strings.ResponseCode}:{httpResponse.StatusCode}");
+
+                //检查HttpResponse StatusCode
+                if (HangfireHttpJobOptions.CheckHttpResponseStatusCode(httpResponse.StatusCode))
                 {
-                    //builder.TextBody = $"执行出错,任务名称【{item.JobName}】,错误详情：{ex}";
-                    HtmlBody = SethtmlBody(jobname, Url, $"执行出错，错误详情:{exception}")
-                };
-                mimeMessage.Body = builder.ToMessageBody();
-                var client = new SmtpClient();
-                client.Connect(UseApollo ? ConfigSettings.Instance.SMTPServerAddress : HangfireHttpJobOptions.SMTPServerAddress,
-                    UseApollo ? ConfigSettings.Instance.SMTPPort : HangfireHttpJobOptions.SMTPPort, true);     //连接服务
-                client.AuthenticationMechanisms.Remove("XOAUTH2");
-                client.Authenticate(UseApollo ? ConfigSettings.Instance.SendMailAddress : HangfireHttpJobOptions.SendMailAddress,
-                   UseApollo ? ConfigSettings.Instance.SMTPPwd : HangfireHttpJobOptions.SMTPPwd); //验证账号密码
-                client.Send(mimeMessage);
-                client.Disconnect(true);
+                    RunWithTry(() => context.WriteLine($"{Strings.ResponseCode}:{httpResponse.StatusCode} ===> CheckResult: Ok "));
+                    logList.Add($"{Strings.ResponseCode}:{httpResponse.StatusCode} ===> CheckResult: Ok ");
+                }
+                else
+                {
+                    throw new HttpStatusCodeException(httpResponse.StatusCode);
+                }
+
+                RunWithTry(() => context.WriteLine($"{Strings.JobResult}:{result}"));
+                logList.Add($"{Strings.JobResult}:{result}");
+                RunWithTry(() => context.WriteLine($"{Strings.JobEnd}:{DateTime.Now:yyyy-MM-dd HH:mm:ss}"));
+                logList.Add($"{Strings.JobEnd}:{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                SendSuccessMail(item, string.Join("<br/>", logList));
             }
-            catch (Exception ee)
+            catch (Exception ex)
             {
-                logger.Info($"邮件服务异常，异常为：{ee}");
-                return false;
+                RunWithTry(() => context.SetTextColor(ConsoleTextColor.Red));
+                Logger.ErrorException("HttpJob.Excute=>" + item, ex);
+                RunWithTry(() => context.WriteLine(ex.ToString()));
+                if (!item.EnableRetry)
+                {
+                    SendFailMail(item, string.Join("<br/>", logList), ex);
+                    AddErrToJob(context, ex);
+                    return;
+                }
+                //获取重试次数
+                var count = RunWithTry<string>(() => context.GetJobParameter<string>("RetryCount")) ?? string.Empty;
+                if (count == "3")//重试达到三次的时候发邮件通知
+                {
+                    RunWithTry(() => context.WriteLine(Strings.LimitReached));
+                    logList.Add(Strings.LimitReached);
+                    SendFailMail(item, string.Join("<br/>", logList), ex);
+                    AddErrToJob(context, ex);
+                    return;
+                }
+
+                context.Items.Add("RetryCount", count);
+                throw;
             }
-            return true;
         }
+
+
+
         /// <summary>
-        /// 设置httpclient
+        /// 获取AgentJob的运行详情
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public static HttpClient GetHttpClient(HttpJobItem item)
+
+        public static string GetAgentJobDetail(HttpJobItem item)
         {
-            var handler = new HttpClientHandler();
-            if (HangfireHttpJobOptions.Proxy == null)
+            if (item.Timeout < 1) item.Timeout = 5000;
+            HttpClient client;
+            if (!string.IsNullOrEmpty(HangfireHttpJobOptions.Proxy))
             {
-                handler.UseProxy = false;
+                // per proxy per HttpClient
+                client = HangfireHttpClientFactory.Instance.GetProxiedHttpClient(HangfireHttpJobOptions.Proxy);
             }
             else
             {
-                handler.Proxy = HangfireHttpJobOptions.Proxy;
+                //per host per HttpClient
+                client = HangfireHttpClientFactory.Instance.GetHttpClient(item.Url);
             }
-            //设置超时时间
-            var HttpClient = new HttpClient(handler)
-            {
-                Timeout = TimeSpan.FromSeconds(item.Timeout == 0 ? HangfireHttpJobOptions.GlobalHttpTimeOut : item.Timeout),
-            };
 
+            var request = new HttpRequestMessage(new HttpMethod("Get"), item.Url);
+            request.Headers.Add("x-job-agent-class", item.AgentClass);
+            request.Headers.Add("x-job-agent-action", "detail");
             if (!string.IsNullOrEmpty(item.BasicUserName) && !string.IsNullOrEmpty(item.BasicPassword))
             {
                 var byteArray = Encoding.ASCII.GetBytes(item.BasicUserName + ":" + item.BasicPassword);
-                HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
-
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
             }
-            return HttpClient;
-        }
-        /// <summary>
-        /// signalR推送使用
-        /// </summary>
-        /// <param name="url"></param>
-        /// <param name="data"></param>
-        /// <param name="statuscode"></param>
-        /// <returns></returns>
-        public static string SendRequest(string url, string data)
-        {
-            var item = new HttpJobItem()
-            {
-                Data = "{" + $"\"message\":\"{data}\"" + "}",
-                Url = url,
-                Method = "post",
-                ContentType = "application/json"
-            };
-            var client = GetHttpClient(item);
-            var httpMesage = PrepareHttpRequestMessage(item);
-            _ = client.SendAsync(httpMesage).GetAwaiter().GetResult();
-            var httpcontent = new StringContent(item.Data.ToString());
-            client.DefaultRequestHeaders.Add("Method", "Post");
-            httpcontent.Headers.ContentType = new MediaTypeHeaderValue(item.ContentType);
-            client.DefaultRequestHeaders.Add("UserAgent",
-      "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36");
-            client.DefaultRequestHeaders.Add("KeepAlive", "false");
-            _ = client.PostAsync(item.Url, httpcontent).GetAwaiter().GetResult();
-            string result = httpcontent.ReadAsStringAsync().GetAwaiter().GetResult();
+
+
+            var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(item.Timeout));
+            var httpResponse = client.SendAsync(request, cts.Token).ConfigureAwait(false).GetAwaiter().GetResult();
+            HttpContent content = httpResponse.Content;
+            string result = content.ReadAsStringAsync().GetAwaiter().GetResult();
             return result;
         }
-        /// <summary>
-        /// 邮件模板
-        /// </summary>
-        /// <param name="jobname"></param>
-        /// <param name="url"></param>
-        /// <param name="exception"></param>
-        /// <returns></returns>
-        private static string SethtmlBody(string jobname, string url, string exception)
+        #endregion
+
+        #region Private
+
+        private static void SendSuccessMail(HttpJobItem item, string result)
         {
-            var title = UseApollo ? ConfigSettings.Instance.SMTPSubject : HangfireHttpJobOptions.SMTPSubject;
-            var htmlbody = $@"<h3 align='center'>{title}</h3>
-                            <h3>执行时间：</h3>
-                            <p>
-                                {DateTime.Now}
-                            </p>
-                            <h3>
-                                任务名称：<span> {jobname} </span><br/>
-                            </h3>
-                            <h3>
-                                请求路径：{url}
-                            </h3>
-                            <h3><span></span> 
-                                执行结果：<br/>
-                            </h3>
-                            <p>
-                                {exception}
-                            </p> ";
-            return htmlbody;
+            try
+            {
+                if (!item.SendSucMail) return;
+                var mail = string.IsNullOrEmpty(item.Mail)
+                    ? string.Join(",", HangfireHttpJobOptions.MailOption.AlertMailList)
+                    : item.Mail;
+
+                if (string.IsNullOrWhiteSpace(mail)) return;
+                var subject = $"【JOB】[Success]" + item.JobName;
+                result = result.Replace("\n", "<br/>");
+                result = result.Replace("\r\n", "<br/>");
+                EmailService.Instance.Send(mail, subject, result);
+
+            }
+            catch (Exception ex)
+            {
+                Logger.ErrorException("HttpJob.SendSuccessMail=>" + item, ex);
+            }
         }
-        public static HttpRequestMessage PrepareHttpRequestMessage(HttpJobItem item)
+
+
+        private static void SendFailMail(HttpJobItem item, string result, Exception exception)
+        {
+            try
+            {
+                if (!item.SendFaiMail) return;
+                var mail = string.IsNullOrEmpty(item.Mail)
+                    ? string.Join(",", HangfireHttpJobOptions.MailOption.AlertMailList)
+                    : item.Mail;
+
+                if (string.IsNullOrWhiteSpace(mail)) return;
+                var subject = $"【JOB】[Fail]" + item.JobName;
+                result = result.Replace("\n", "<br/>");
+                result = result.Replace("\r\n", "<br/>");
+                if (exception != null)
+                {
+                    result += BuildExceptionMsg(exception);
+                }
+                EmailService.Instance.Send(mail, subject, result);
+            }
+            catch (Exception ex)
+            {
+
+                Logger.ErrorException("HttpJob.SendFailMail=>" + item, ex);
+            }
+        }
+        private static string BuildExceptionMsg(Exception ex, string prefix = "")
+        {
+            try
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine(GetHtmlFormat(ex.GetType().ToString()));
+                sb.AppendLine("Messgae:" + GetHtmlFormat(ex.Message));
+                sb.AppendLine("StackTrace:<br/>" + GetHtmlFormat(ex.StackTrace));
+                if (ex.InnerException != null)
+                {
+                    sb.AppendLine(BuildExceptionMsg(ex.InnerException, prefix + "&nbsp;&nbsp;&nbsp;"));
+                }
+
+                return sb.ToString();
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
+        }
+        private static string GetHtmlFormat(string v)
+        {
+            return v.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+        }
+
+        private static HttpRequestMessage PrepareHttpRequestMessage(HttpJobItem item, PerformContext context)
         {
             var request = new HttpRequestMessage(new HttpMethod(item.Method), item.Url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(item.ContentType));
             if (!item.Method.ToLower().Equals("get"))
             {
-                if (!string.IsNullOrEmpty(item.Data.ToString()))
+                if (!string.IsNullOrEmpty(item.Data))
                 {
-                    var bytes = Encoding.UTF8.GetBytes(item.Data.ToString());
-                    request.Content = new ByteArrayContent(bytes, 0, bytes.Length);
+                    //var bytes = Encoding.UTF8.GetBytes(item.Data);
+                    request.Content = new StringContent(item.Data, Encoding.UTF8, item.ContentType);
+                    //request.Content = new ByteArrayContent(bytes, 0, bytes.Length);
                 }
             }
+
+            var headerKeys = string.Empty;
+            if (item.Headers != null && item.Headers.Count > 0)
+            {
+                foreach (var header in item.Headers)
+                {
+                    if (string.IsNullOrEmpty(header.Key)) continue;
+                    request.Headers.Add(header.Key, header.Value);
+                }
+
+                headerKeys = string.Join("；", item.Headers.Keys);
+            }
+
+            if (!string.IsNullOrEmpty(item.AgentClass))
+            {
+                request.Headers.Add("x-job-agent-class", item.AgentClass);
+                if (!string.IsNullOrEmpty(headerKeys))
+                {
+                    request.Headers.Add("x-job-agent-header", headerKeys);
+                }
+                var consoleInfo = GetConsoleInfo(context);
+                if (consoleInfo != null)
+                {
+                    request.Headers.Add("x-job-agent-console", JsonConvert.SerializeObject(consoleInfo));
+                }
+            }
+
+            if (context != null)
+            {
+                context.Items.TryGetValue("Action", out var actionItem);
+                var action = actionItem as string;
+                if (!string.IsNullOrEmpty(action))
+                {
+                    request.Headers.Add("x-job-agent-action", action);
+                }
+                else if (!string.IsNullOrEmpty(item.AgentClass))
+                {
+                    request.Headers.Add("x-job-agent-action", "run");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(item.BasicUserName) && !string.IsNullOrEmpty(item.BasicPassword))
+            {
+                var byteArray = Encoding.ASCII.GetBytes(item.BasicUserName + ":" + item.BasicPassword);
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+            }
+
             return request;
         }
-        private const int num = 3;
+
         /// <summary>
-        /// 执行任务，DelaysInSeconds(重试时间间隔/单位秒)
+        /// AgentJob的话 取得Console的参数
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="jobName"></param>
         /// <param name="context"></param>
-        [AutomaticRetrySet(Attempts = num, DelaysInSeconds = new[] { 20, 30, 60 }, LogEvents = true, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
-        [AutomaticRetry(Attempts =0,OnAttemptsExceeded =AttemptsExceededAction.Fail)]
-        [DisplayName("Args : [  JobName : {1}  |  QueueName : {2}  |  IsRetry : {3} ]")]
-        [JobFilter(timeoutInSeconds: 3600)]
-        public static void Excute(HttpJobItem item, string jobName = null,string queuename=null,bool isretry=false, PerformContext context = null)
+        /// <returns></returns>
+        private static ConsoleInfo GetConsoleInfo(PerformContext context)
         {
             try
             {
-                //此处信息会显示在执行结果日志中
-                context.SetTextColor(ConsoleTextColor.Yellow);
-                context.WriteLine($"任务开始执行,执行时间{DateTime.Now.ToString()}");
-                context.WriteLine($"任务名称:{jobName}");
-                context.WriteLine($"参数:{JsonConvert.SerializeObject(item)}");
-                var client = GetHttpClient(item);
-                var httpMesage = PrepareHttpRequestMessage(item);
-                var httpResponse = new HttpResponseMessage();
-                httpResponse = SendUrlRequest(item, client, httpMesage);
-                HttpContent content = httpResponse.Content;
-                string result = content.ReadAsStringAsync().GetAwaiter().GetResult();
-                context.WriteLine($"执行结果：{result}");
-            }
-            catch (Exception ex)
-            {
-                //获取重试次数
-                var count = context.GetJobParameter<string>("RetryCount");
-                context.SetTextColor(ConsoleTextColor.Red);
-                //signalR推送
-                //SendRequest(UseApollo?ConfigSettings.Instance.ServiceAddress:ConfigSettings.Instance.URL+"/api/Publish/EveryOne", "测试");
-                if (count == "3"&&ConfigSettings.Instance.UseEmail)//重试达到三次的时候发邮件通知
+                if (context == null)
                 {
-                    SendEmail(item.JobName, item.Url, ex.ToString());
+                    // PerformContext might be null because of refactoring, or during tests
+                    return null;
                 }
-                logger.Error(ex, "HttpJob.Excute");
-                context.WriteLine($"执行出错：{ex.Message}");
-                throw;//不抛异常不会执行重试操作
+
+                if (!context.Items.ContainsKey("ConsoleContext"))
+                {
+                    // Absence of ConsoleContext means ConsoleServerFilter was not properly added
+                    return null;
+                }
+
+                var consoleContext = context.Items["ConsoleContext"];
+
+                //反射获取私有属性 _consoleId
+
+                var consoleValue = consoleContext?.GetType().GetField("_consoleId", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(consoleContext);
+
+                if (consoleValue == null) return null;
+
+                //反射获取ConsoleId的私有属性 DateValue 值
+
+                var dateValue = consoleValue.GetType().GetProperty("DateValue", BindingFlags.Instance | BindingFlags.Public)?.GetValue(consoleValue);
+
+                return new ConsoleInfo
+                {
+                    HashKey = $"console:refs:{consoleValue}",
+                    SetKey = $"console:{consoleValue}",
+                    StartTime = (DateTime?)dateValue ?? DateTime.Now
+                };
+            }
+            catch (Exception)
+            {
+                return null;
             }
         }
-        /// <summary>
-        /// 发送请求
-        /// </summary>
-        /// <param name="item"></param>
-        /// <param name="client"></param>
-        /// <param name="httpMesage"></param>
-        /// <returns></returns>
-        private static HttpResponseMessage SendUrlRequest(HttpJobItem item, HttpClient client, HttpRequestMessage httpMesage)
+
+
+        private static T RunWithTry<T>(Func<T> action)
         {
-            HttpResponseMessage httpResponse;
-            if (item.Method.ToLower() == "post")
+            try
             {
-                var httpcontent = new StringContent(item.Data.ToString());
-                client.DefaultRequestHeaders.Add("Method", "Post");
-                httpcontent.Headers.ContentType = new MediaTypeHeaderValue(item.ContentType);
-                client.DefaultRequestHeaders.Add("UserAgent",
-          "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36");
-                client.DefaultRequestHeaders.Add("KeepAlive", "false");
-
-                httpResponse = client.PostAsync(item.Url, httpcontent).GetAwaiter().GetResult();
+                return action();
             }
-            else
+            catch (Exception e)
             {
-                httpResponse = client.SendAsync(httpMesage).GetAwaiter().GetResult();
+                Logger.ErrorException("RunWithTry", e);
             }
 
-            return httpResponse;
+            return default(T);
         }
+
+        private static void RunWithTry(Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception e)
+            {
+                Logger.ErrorException("RunWithTry", e);
+            }
+        }
+
+        private static void AddErrToJob(PerformContext context, Exception ex)
+        {
+            context.SetJobParameter("jobErr", ex.Message);
+
+        }
+        #endregion
     }
 
 

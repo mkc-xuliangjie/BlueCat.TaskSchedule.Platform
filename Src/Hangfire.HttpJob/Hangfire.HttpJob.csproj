@@ -5,19 +5,53 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Content\cron.js" />
+    <None Remove="Content\httpjob.js" />
+    <None Remove="Content\jsoneditor.css" />
+    <None Remove="Content\jsoneditor.js" />
+    <None Remove="Content\sweetalert2.min.css" />
+    <None Remove="Content\sweetalert2.min.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Content\cron.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Content\httpjob.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Content\jsoneditor.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Content\jsoneditor.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Content\sweetalert2.min.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Content\sweetalert2.min.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Hangfire.AspNetCore" Version="1.7.7" />
     <PackageReference Include="Hangfire.Console" Version="1.4.2" />
-    <PackageReference Include="Hangfire.Heartbeat" Version="0.5.0" />
-    <PackageReference Include="MailKit" Version="2.4.0" />
+    <PackageReference Include="Hangfire.Tags" Version="0.8.0" />
+    <PackageReference Include="MailKit" Version="2.4.1" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="NLog" Version="4.6.8" />
-    <PackageReference Include="NLog.Config" Version="4.6.8" />
     <PackageReference Include="System.ComponentModel.Primitives" Version="4.3.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BlueCat.Core\BlueCat.Core.csproj" />
+    <ProjectReference Include="..\HttpClientFactory\HttpClientFactory.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="C:\Users\xulj\.nuget\packages\nlog.config\4.6.8\contentFiles\any\any\NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

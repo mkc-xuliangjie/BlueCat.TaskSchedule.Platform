@@ -1,4 +1,5 @@
-﻿using BlueCat.Core;
+﻿using BlueCat.ApiExtensions.Extensions;
+using BlueCat.Core;
 using BlueCat.Core.Options;
 using Hangfire;
 using Hangfire.Console;
@@ -42,6 +43,7 @@ namespace BlueCat.JobServer
             {
                 Redis = ConnectionMultiplexer.Connect(ConfigSettings.Instance.HangfireRedisConnectionString);
             }
+
         }
 
         public static ConnectionMultiplexer Redis;
@@ -62,23 +64,14 @@ namespace BlueCat.JobServer
             CultureInfo.CurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentCulture = culture;
 
-           string useRedis= ConfigurationManager.GetAppSetting("Hangfire.UseRedis"); 
-           
+            services.AddHttpContextAccessor();
+
             //健康检查地址添加
             var hostlist = ConfigSettings.Instance.HostServers;
             //添加健康检查地址
             hostlist.ForEach(s =>
             {
                 services.AddHealthChecks().AddUrlGroup(new Uri(s.Uri), s.HttpMethod.ToLower() == "post" ? HttpMethod.Post : HttpMethod.Get, $"{s.Uri}");
-            });
-            //redis集群检查地址添加
-            var redislist = ConfigSettings.Instance.HangfireRedisConnectionString.Split(",").ToList();
-            redislist.ForEach(k =>
-            {
-                if (k.Contains(":"))
-                {
-                    services.AddHealthChecks().AddRedis(k, $"Redis: {k}");
-                }
             });
 
             #region 添加Hnagfire 数据库,包括redis,mysql,sqlserver
@@ -133,12 +126,14 @@ namespace BlueCat.JobServer
                     DashboardTitle = "XXX公司任务管理",
                     DashboardName = "后台任务管理",
                     DashboardFooter = "XXX公司后台任务管理V1.0.0.0",
-                    SendToMailList = ConfigSettings.Instance.SendMailList,
-                    SendMailAddress = ConfigSettings.Instance.SendMailAddress,
-                    SMTPServerAddress = ConfigSettings.Instance.SMTPServerAddress,
-                    SMTPPort = ConfigSettings.Instance.SMTPPort,
-                    SMTPPwd = ConfigSettings.Instance.SMTPPwd,
-                    SMTPSubject = ConfigSettings.Instance.SMTPSubject
+                    StartBackgroudJobButtonName = "带参数执行",
+                    StopBackgroudJobButtonName = "停止job"
+                    //SendToMailList = ConfigSettings.Instance.SendMailList,
+                    //SendMailAddress = ConfigSettings.Instance.SendMailAddress,
+                    //SMTPServerAddress = ConfigSettings.Instance.SMTPServerAddress,
+                    //SMTPPort = ConfigSettings.Instance.SMTPPort,
+                    //SMTPPwd = ConfigSettings.Instance.SMTPPwd,
+                    //SMTPSubject = ConfigSettings.Instance.SMTPSubject
                 }).UseConsole(new ConsoleOptions() { BackgroundColor = "#000079" }).UseDashboardMetric(DashboardMetrics.AwaitingCount)
                   .UseDashboardMetric(DashboardMetrics.ProcessingCount)
                   .UseDashboardMetric(DashboardMetrics.RecurringJobCount)
@@ -213,22 +208,21 @@ namespace BlueCat.JobServer
             //服务器资源检测频率
             additionalProcesses: new IBackgroundProcess[] { new ProcessMonitor(checkInterval: TimeSpan.FromSeconds(1)) }//new[] { new SystemMonitor(checkInterval: TimeSpan.FromSeconds(1))}
             );
-
             #endregion
 
             #region //后台进程
             if (ConfigSettings.Instance.UseBackWorker)
             {
-                var listprocess = new List<IBackgroundProcess>
-                {
-                    ConfigurationManager.FromJson<BackWorkers>(ConfigSettings.Instance.BackWorker)
-                };
-                app.UseHangfireServer(new BackgroundJobServerOptions()
-                {
-                    ServerName = $"{Environment.MachineName}-BackWorker",
-                    WorkerCount = 20,
-                    Queues = new[] { "test", "api", "demo" }
-                }, additionalProcesses: listprocess);
+                //var listprocess = new List<IBackgroundProcess>
+                //{
+                //    ConfigurationManager.FromJson<BackWorkers>(ConfigSettings.Instance.BackWorker)
+                //};
+                //app.UseHangfireServer(new BackgroundJobServerOptions()
+                //{
+                //    ServerName = $"{Environment.MachineName}-BackWorker",
+                //    WorkerCount = 20,
+                //    Queues = new[] { "test", "api", "demo" }
+                //}, additionalProcesses: listprocess);
             }
             #endregion
 
@@ -345,6 +339,10 @@ namespace BlueCat.JobServer
             app.UseWebSockets();
 
             #endregion
+
+            //保证在 Mvc 之前调用
+            app.UseHttpContextGlobal()
+               .UseToolTrace();
 
             app.UseMvc();
         }
