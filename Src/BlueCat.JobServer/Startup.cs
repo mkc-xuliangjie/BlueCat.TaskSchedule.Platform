@@ -42,7 +42,6 @@ namespace BlueCat.JobServer
             {
                 Redis = ConnectionMultiplexer.Connect(ConfigSettings.Instance.HangfireRedisConnectionString);
             }
-
         }
 
         public static ConnectionMultiplexer Redis;
@@ -65,13 +64,6 @@ namespace BlueCat.JobServer
 
             services.AddHttpContextAccessor();
 
-            //健康检查地址添加
-            var hostlist = ConfigSettings.Instance.HostServers;
-            //添加健康检查地址
-            hostlist.ForEach(s =>
-            {
-                services.AddHealthChecks().AddUrlGroup(new Uri(s.Uri), s.HttpMethod.ToLower() == "post" ? HttpMethod.Post : HttpMethod.Get, $"{s.Uri}");
-            });
 
             #region 添加Hnagfire 数据库,包括redis,mysql,sqlserver
             services.AddHangfire(config =>
@@ -143,8 +135,6 @@ namespace BlueCat.JobServer
             });
             #endregion
 
-            //添加SignalR
-            services.AddSignalR();
 
             //依赖注入
             services.AddSingleton<IServiceProvider, ServiceProvider>();
@@ -160,8 +150,6 @@ namespace BlueCat.JobServer
             }));
 
             services.AddHealthChecksUI();
-
-
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
         }
@@ -209,21 +197,6 @@ namespace BlueCat.JobServer
             );
             #endregion
 
-            //#region //后台进程
-            //if (ConfigSettings.Instance.UseBackWorker)
-            //{
-            //    var listprocess = new List<IBackgroundProcess>
-            //    {
-            //        ConfigurationManager.FromJson<BackWorkers>(ConfigSettings.Instance.BackWorker)
-            //    };
-            //    app.UseHangfireServer(new BackgroundJobServerOptions()
-            //    {
-            //        ServerName = $"{Environment.MachineName}-BackWorker",
-            //        WorkerCount = 20,
-            //        Queues = new[] { "test", "api", "demo" }
-            //    }, additionalProcesses: listprocess);
-            //}
-            //#endregion
 
             #region //启动Hangfire面板
 
@@ -292,49 +265,9 @@ namespace BlueCat.JobServer
 
             #endregion
 
-            #region //重写json报告数据，可用于远程调用获取健康检查结果
-
-            var options = new HealthCheckOptions
-            {
-                ResponseWriter = async (c, r) =>
-                {
-                    c.Response.ContentType = "application/json";
-
-                    var result = JsonConvert.SerializeObject(new
-                    {
-                        status = r.Status.ToString(),
-                        errors = r.Entries.Select(e => new { key = e.Key, value = e.Value.Status.ToString() })
-                    });
-                    await c.Response.WriteAsync(result);
-                }
-            };
-
-            #endregion
-
-            #region //健康检查
-
-            app.UseHealthChecks("/healthz", new HealthCheckOptions()
-            {
-                Predicate = _ => true,
-                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-            });
-            app.UseHealthChecks("/health", options);//获取自定义格式的json数据
-            app.UseHealthChecksUI(setup =>
-            {
-                setup.UIPath = "/hc"; // 健康检查的UI面板地址
-                setup.ApiPath = "/hc-api"; // 用于api获取json的检查数据
-            });
-
-            #endregion
-
-            #region SignalR
-
             //跨域支持
             app.UseCors("CorsPolicy");
         
-            app.UseWebSockets();
-
-            #endregion
 
             //保证在 Mvc 之前调用
             app.UseHttpContextGlobal()
