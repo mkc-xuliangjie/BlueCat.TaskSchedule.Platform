@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace BlueCat.JobServer.Controllers
 {
     [ApiController]
-    [Route("api")]
+    //[Route("api/job")]
     public class AddJobsController : Controller
     {
         /// <summary>
@@ -17,7 +17,7 @@ namespace BlueCat.JobServer.Controllers
         /// </summary>
         /// <param name="httpJob"></param>
         /// <returns></returns>
-        [HttpPost, Route("v1/job/add/background_job")]
+      //  [HttpPost, Route("v1/add/background_job")]
         public ResponseModel<AddBackgroundJobResponseModel> AddBackGroundJob([FromBody] HttpJobItem httpJob)
         {
             ResponseModel<AddBackgroundJobResponseModel> responseModel = new ResponseModel<AddBackgroundJobResponseModel>();
@@ -46,7 +46,7 @@ namespace BlueCat.JobServer.Controllers
         /// </summary>
         /// <param name="httpJob"></param>
         /// <returns></returns>
-        [HttpPost, Route("v1/job/add_or_update_recurring")]
+       // [HttpPost, Route("v1/add_or_update_recurring")]
         public ResponseModel<AddRecurringJobResponseModel> AddOrUpdateRecurringJob([FromBody] HttpJobItem httpJob)
         {
             ResponseModel<AddRecurringJobResponseModel> responseModel = new ResponseModel<AddRecurringJobResponseModel>();
@@ -73,7 +73,7 @@ namespace BlueCat.JobServer.Controllers
         /// </summary>
         /// <param name="jobname"></param>
         /// <returns></returns>
-        [HttpGet, Route("v1/job/delete_job")]
+       // [HttpGet, Route("v1/delete_job")]
         public ResponseModel<DeleteJobResponseModel> DeleteJob(string jobname)
         {
             ResponseModel<DeleteJobResponseModel> responseModel = new ResponseModel<DeleteJobResponseModel>();
@@ -91,6 +91,7 @@ namespace BlueCat.JobServer.Controllers
                 responseModel.ResultCode = ResponseStatusCode.Error;
                 responseModel.ResultDesc = ex.Message;
             }
+
             return responseModel;
         }
         /// <summary>
@@ -117,7 +118,7 @@ namespace BlueCat.JobServer.Controllers
         /// </summary>
         /// <param name="httpJob">httpJob.DelayFromMinutes（延迟多少分钟执行）</param>
         /// <returns></returns>
-        [HttpPost, Route("v1/job/add/schedule_job")]
+       // [HttpPost, Route("v1/add/schedule_job")]
         public ResponseModel<AddScheduleJobResponseModel> AddScheduleJob([FromBody] HttpJobItem httpJob)
         {
             ResponseModel<AddScheduleJobResponseModel> responseModel = new ResponseModel<AddScheduleJobResponseModel>();
@@ -146,7 +147,7 @@ namespace BlueCat.JobServer.Controllers
         /// </summary>
         /// <param name="httpJob"></param>
         /// <returns></returns>
-        [HttpPost, Route("v1/add/continue_job")]
+       // [HttpPost, Route("v1/add/continue_job")]
         public ResponseModel<AddContinueJobResponseModel> AddContinueJob([FromBody] List<HttpJobItem> httpJobItems)
         {
 
@@ -189,13 +190,5 @@ namespace BlueCat.JobServer.Controllers
         {
             BackgroundJob.Enqueue(() => HttpJob.Excute(httpJob, httpJob.JobName, httpJob.QueueName, false, null));
         }
-    }
-    /// <summary>
-    /// 返回消息
-    /// </summary>
-    public class Message
-    {
-        public bool Code { get; set; }
-        public string ErrorMessage { get; set; }
     }
 }

@@ -12,7 +12,6 @@ using Hangfire.HttpJob.Support;
 using Hangfire.MySqlStorage.Core;
 using Hangfire.Server;
 using HealthChecks.UI.Client;
-using JobsServer.Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
@@ -196,7 +195,7 @@ namespace BlueCat.JobServer
 
             #region //队列
 
-            var queues = new[] { "default", "apis", "localjobs" };
+            
             app.UseHangfireServer(new BackgroundJobServerOptions()
             {
                 ServerTimeout = TimeSpan.FromMinutes(4),
@@ -210,21 +209,21 @@ namespace BlueCat.JobServer
             );
             #endregion
 
-            #region //后台进程
-            if (ConfigSettings.Instance.UseBackWorker)
-            {
-                //var listprocess = new List<IBackgroundProcess>
-                //{
-                //    ConfigurationManager.FromJson<BackWorkers>(ConfigSettings.Instance.BackWorker)
-                //};
-                //app.UseHangfireServer(new BackgroundJobServerOptions()
-                //{
-                //    ServerName = $"{Environment.MachineName}-BackWorker",
-                //    WorkerCount = 20,
-                //    Queues = new[] { "test", "api", "demo" }
-                //}, additionalProcesses: listprocess);
-            }
-            #endregion
+            //#region //后台进程
+            //if (ConfigSettings.Instance.UseBackWorker)
+            //{
+            //    var listprocess = new List<IBackgroundProcess>
+            //    {
+            //        ConfigurationManager.FromJson<BackWorkers>(ConfigSettings.Instance.BackWorker)
+            //    };
+            //    app.UseHangfireServer(new BackgroundJobServerOptions()
+            //    {
+            //        ServerName = $"{Environment.MachineName}-BackWorker",
+            //        WorkerCount = 20,
+            //        Queues = new[] { "test", "api", "demo" }
+            //    }, additionalProcesses: listprocess);
+            //}
+            //#endregion
 
             #region //启动Hangfire面板
 
@@ -332,10 +331,7 @@ namespace BlueCat.JobServer
 
             //跨域支持
             app.UseCors("CorsPolicy");
-            app.UseSignalR(routes =>
-            {
-                routes.MapHub<SignalrHubs>("/Hubs");
-            });
+        
             app.UseWebSockets();
 
             #endregion

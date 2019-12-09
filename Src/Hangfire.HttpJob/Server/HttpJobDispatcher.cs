@@ -162,8 +162,6 @@ namespace Hangfire.HttpJob.Server
 
         }
 
-
-
         public async Task<HttpJobItem> GetJobItem(DashboardContext _context)
         {
             try
@@ -227,8 +225,6 @@ namespace Hangfire.HttpJob.Server
                 return null;
             }
         }
-
-
 
         /// <summary>
         /// 添加后台作业
